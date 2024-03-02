@@ -1,0 +1,129 @@
+
+//+------------------------------------------------------------------+
+//|                                      KPL Swing Indicator.mq5     |
+//|                        Copyright 2022, Forex Robot Easy Team    |
+//|                       https://www.forexroboteasy.com             |
+//+------------------------------------------------------------------+
+
+// Include necessary header files
+#include <Trade\Trade.mqh>
+#include <Indicators\KPLSwing.mqh>
+#include <Expert\Expert.mqh>
+
+// Global variables
+CTrade trade;                        // Trade object for executing trades
+CKPLSwing kplSwing;                   // KPL Swing Indicator object
+double stopLoss = 10;                // Hard stoploss value in pips
+double trailingStopLoss = 20;       // Trailing stoploss value in pips
+
+// Initializing the Expert Advisor
+int OnInit()
+{
+   ExpertSetSignal(ExpertSignalIndications::ExpertSignalIndications_DEFAULT);
+   return(INIT_SUCCEEDED);
+}
+
+// Deinitializing the Expert Advisor
+void OnDeinit(const int reason)
+{
+   ExpertRemove();
+}
+
+// Executed on each tick
+void OnTick()
+{
+   // Check for new swing high or swing low
+   if(kplSwing.NewSwingHigh() || kplSwing.NewSwingLow())
+   {
+      // Check if there is an open position
+      if(trade.PositionSelect(_Symbol))
+      {
+         // Close existing position
+         trade.PositionClose(_Symbol);
+      }
+
+      // Get the current swing direction
+      ENUM_DIRECTION direction = kplSwing.GetCurrentSwingDirection();
+
+      // Open new position based on trend-following strategy
+      if(direction == DIRECTION_UP)
+      {
+         // Long entry
+         double entryPrice = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
+         double stopLossPrice = entryPrice - stopLoss * _Point;
+
+         // Open long position with hard stoploss
+         trade.Buy(_Symbol, 0.01, entryPrice, stopLossPrice, 0, 0, NULL, 'KPL Swing Indicator - Long Entry');
+      }
+      else if(direction == DIRECTION_DOWN)
+      {
+         // Short entry
+         double entryPrice = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
+         double stopLossPrice = entryPrice + stopLoss * _Point;
+
+         // Open short position with hard stoploss
+         trade.Sell(_Symbol, 0.01, entryPrice, stopLossPrice, 0, 0, NULL, 'KPL Swing Indicator - Short Entry');
+      }
+   }
+}
+
+// Executed on each tick during an open position
+void OnTrade()
+{
+   // Check if there is an open position
+   if(trade.PositionSelect(_Symbol))
+   {
+      // Get the current position
+      CPosition position = trade.PositionGet(_Symbol);
+
+      // Check for profitable trades
+      if(position.Profit() > 0)
+      {
+         // Set trailing stoploss
+         double trailingStopLossPrice = position.EntryPrice() + trailingStopLoss * _Point;
+         trade.PositionModify(position, position.EntryPrice(), trailingStopLossPrice, 0, 0, NULL, 'KPL Swing Indicator - Trailing Stoploss');
+      }
+   }
+}
+
+// Executed on each tick during an open position modification
+void OnTradeTransaction()
+{
+   // No implementation needed for this trading strategy
+}
+
+// Executed on each tick during an open position closure
+void OnTradeTransactionPosition()
+{
+   // No implementation needed for this trading strategy
+}
+
+// Executed on each tick during an order closure
+void OnTradeTransactionOrder()
+{
+   // No implementation needed for this trading strategy
+}
+
+// Executed on each tick during an order modification
+void OnTradeTransactionOrderModify()
+{
+   // No implementation needed for this trading strategy
+}
+
+// Executed on each tick during a pending order activation
+void OnTradeTransactionOrderActivate()
+{
+   // No implementation needed for this trading strategy
+}
+
+// Executed on each tick during a pending order modification
+void OnTradeTransactionOrderModifyActivate()
+{
+   // No implementation needed for this trading strategy
+}
+
+// Executed on each tick during a pending order deletion
+void OnTradeTransactionOrderDelete()
+{
+   // No implementation needed for this trading strategy
+}
